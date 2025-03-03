@@ -8,14 +8,15 @@ const props = defineProps<{
 }>()
 
 const stalls = computed(() => {
-  if (props.stats.stalls.totalDuration > 2000) {
+  const duration = props.stats.stalls.currentStallTime ?? props.stats.stalls.totalDuration;
+  if (duration > 2000) {
     return {
-      value: Math.round(props.stats.stalls.totalDuration * 100 / 1000) / 100,
+      value: (Math.round(duration * 100 / 1000) / 100).toFixed(2),
       unit: 's'
     }
   } else {
     return {
-      value: Math.round(props.stats.stalls.totalDuration),
+      value: Math.round(duration).toFixed(0),
       unit: 'ms'
     }
   }

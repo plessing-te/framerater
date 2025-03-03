@@ -10,6 +10,7 @@ export interface VideoStats {
     currentStart: number | null;
     totalCount: number;
     totalDuration: number;
+    currentStallTime: null | number;
   }
   latency: {
     latest: number | null,

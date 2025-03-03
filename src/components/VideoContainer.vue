@@ -4,7 +4,7 @@
         ref="video-player"
     ></video>
     <VideoStatsOverlay
-        :stats="stats"
+      :stats="stats"
     ></VideoStatsOverlay>
   </div>
 </template>
@@ -36,7 +36,8 @@ const stats = reactive<VideoStats>({
     },
     get totalDuration() {
       return this.history.reduce((total, { duration }) => total + duration, 0);
-    }
+    },
+    currentStallTime: null
   },
   latency: {
     latest: null,
@@ -131,6 +132,21 @@ function setupVideoPlayback() {
           return;
         }
         stats.stalls.currentStart = performance.now();
+
+        let start = 0;
+        let total = stats.stalls.totalDuration;
+        function tick(now: number) {
+          if (start === 0) {
+            start = now;
+          }
+          if (stats.stalls.currentStart === 0) {
+            return;
+          }
+          stats.stalls.currentStallTime = total + now - start;
+          requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+
         // console.log("Stall started!");
       }
     });
@@ -150,6 +166,7 @@ function setupVideoPlayback() {
       duration: end - start,
     })
     stats.stalls.currentStart = 0;
+    stats.stalls.currentStallTime = null;
     // console.log("Stall finished in "+(end - start)+" ms");
   }
 
@@ -176,6 +193,7 @@ function setupVideoPlayback() {
           duration: end - start,
         });
         stats.stalls.currentStart = 0;
+        stats.stalls.currentStallTime = null;
       }
       isEmitted = true;
       emit('done', { stats: stats as any });
