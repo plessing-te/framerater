@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Chart from '@/components/Chart.vue';
 import StatBlock from '@/components/StatBlock.vue';
 import type { VideoStats } from '@/components/stats.ts';
 import { computed } from 'vue';
@@ -53,6 +54,7 @@ const stalls = computed(() => {
       unit="ms"
       :isBad="(stats.latency.latest ?? 0) > 30"
   ></StatBlock>
+  <Chart :data="stats.latency.history" :minPointCount="40"></Chart>
 </div>
 </template>
 

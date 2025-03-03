@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computeTotalScore } from '@/components/calculate-score.ts';
+import Chart from '@/components/Chart.vue';
 import ResultStatBlock from '@/components/ResultStatBlock.vue';
 import type { VideoStats } from '@/components/stats.ts';
 import { computed } from 'vue';
@@ -117,13 +118,26 @@ const resolution = computed(() => {
   ];
 
   for (const resolution of resolutions) {
-    if (resolution.width >= (props.results.level?.width ?? 0)) {
+    if (resolution.width >= (props.results.level?.latest?.width ?? 0)) {
       return resolution.name;
     }
   }
   return 'n/a';
 })
 
+const levels = computed(() => {
+  const levelData = [];
+  const labels = [];
+  console.log(props.results.level.history);
+  for (const { level, time } of props.results.level.history) {
+    levelData.push(level.height);
+    labels.push(time);
+  }
+  return {
+    levels: levelData,
+    labels: labels
+  };
+});
 
 </script>
 
@@ -186,12 +200,16 @@ const resolution = computed(() => {
                 unit="ms"
                 :variant="results.latency.average < 10 ? 'good' : results.latency.average < 30 ? 'neutral' : 'bad'"
             ></ResultStatBlock>
+            <Chart
+              :data="results.latency.history"
+            ></Chart>
           </div>
           <div class="results__single-row">
             <ResultStatBlock
                 label="Video Quality"
                 :value="resolution"
             ></ResultStatBlock>
+            <Chart :data="levels.levels" :labels="levels.labels" :stepped="true"></Chart>
           </div>
           <div class="results__single-row">
             <ResultStatBlock
@@ -200,6 +218,7 @@ const resolution = computed(() => {
                 unit="Mbps"
                 :variant="results.bandwidth.average < 10 ? 'bad' : results.bandwidth.average > 80 ? 'good' : 'neutral'"
             ></ResultStatBlock>
+            <Chart :data="results.bandwidth.historyEstimates"></Chart>
           </div>
         </div>
       </div>
@@ -350,9 +369,8 @@ const resolution = computed(() => {
 
   &__single-row {
     margin-top: 52px;
-    &:not(:last-child) {
-      border-bottom: 1px solid #596069;
-    }
+    padding-bottom: 10px;
+    border-bottom: 1px solid #596069;
   }
 }
 .explanation {

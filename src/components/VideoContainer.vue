@@ -59,7 +59,10 @@ const stats = reactive<VideoStats>({
       return this.historyEstimates.reduce(average);
     }
   },
-  level: null
+  level: {
+    latest: null,
+    history: [],
+  }
 } satisfies VideoStats);
 
 // watch(stats, (value) => {
@@ -94,9 +97,21 @@ function setupVideoPlayback() {
       }
       video.currentTime = 457;
       video.play();
-
-      stats.level = hls.levels[hls.currentLevel];
     });
+    // Grab the initial level
+    hls.on(Hls.Events.LEVEL_UPDATED, () => {
+      console.log('Updated level', hls.currentLevel);
+      if (stats.level.latest) {
+        return;
+      }
+      const level = hls.levels[hls.currentLevel];
+      // Initially the level is -1 so skip those
+      if (level) {
+        console.log('Setting');
+        stats.level.latest = level;
+        stats.level.history = [...stats.level.history, { time: performance.now(), level }];
+      }
+    })
 
     hls.on(Hls.Events.FRAG_BUFFERED, function() {
       if (isEmitted) {
@@ -113,10 +128,12 @@ function setupVideoPlayback() {
       }
       // console.log(hls.levels);
       let level = hls.levels[hls.currentLevel];
+      // console.log('level', level, hls.currentLevel);
       // console.log("level: "+level.name+" with bitrate "+(level.bitrate/1_000_000)+" Mbit/s");
-      if (!stats.level || level.bitrate < stats.level.bitrate) {
-        stats.level = level;
+      if (!stats.level || level.bitrate < stats.level.latest?.bitrate!) {
+        stats.level.latest = level;
       }
+      stats.level.history = [...stats.level.history, { time: performance.now(), level }];
     });
 
     video.addEventListener("timeupdate", getStartupDelay);
@@ -214,7 +231,7 @@ function latencyMeasurement() {
       let end = performance.now();
       let delta = end - start;
       stats.latency.latest = delta;
-      stats.latency.history.push(delta);
+      stats.latency.history = [...stats.latency.history, delta];
 
       // console.log('latency', stats.latency.latest, 'avg', stats.latency.average, 'jitter', stats.latency.jitter);
     });

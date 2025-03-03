@@ -24,5 +24,11 @@ export interface VideoStats {
     historyEstimates: number[],
     average: number,
   },
-  level: Level | null;
+  level: {
+    latest: Level | null,
+    history: {
+      level: Level,
+      time: number,
+    }[]
+  }
 }
