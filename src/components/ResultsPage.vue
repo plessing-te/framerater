@@ -14,18 +14,20 @@ const emit = defineEmits<{
 }>()
 
 
-const stalls = computed(() => {
+const stalls = computed((): { value: number, unit: string, percentage: number, variant: 'good' | 'neutral' | 'bad' } => {
   if (props.results.stalls.totalDuration > 2000) {
     return {
       value: Math.round(props.results.stalls.totalDuration * 100 / 1000) / 100,
       unit: 's',
       percentage: (props.results.stalls.totalDuration / 20_000) * 100,
+      variant: 'bad'
     }
   } else {
     return {
       value: Math.round(props.results.stalls.totalDuration),
       unit: 'ms',
       percentage: (props.results.stalls.totalDuration / 20_000) * 100,
+      variant: props.results.stalls.totalDuration === 0 ? 'good' : props.results.stalls.totalDuration < 500  ? 'neutral' : 'bad'
     }
   }
 });
@@ -152,6 +154,19 @@ const bandwidth = computed(() => {
   };
 })
 
+const resolutionQuality = computed(() => {
+  if (!props.results.level?.latest?.height) {
+    return 'neutral';
+  }
+  if (props.results.level?.latest?.height < 720) {
+    return 'bad';
+  }
+  if (props.results.level?.latest?.height > 1080) {
+    return 'good';
+  }
+  return 'neutral';
+})
+
 </script>
 
 <template>
@@ -203,7 +218,7 @@ const bandwidth = computed(() => {
             <ResultStatBlock
                 label="Stalls Total Duration"
                 :value="`${stalls.value.toFixed(0)} ${stalls.unit} (${stalls.percentage.toFixed(0)}%)`"
-                :variant="stalls.value === 0 ? 'good' : stalls.value < 200 ? 'neutral' : 'bad'"
+                :variant="stalls.variant"
             ></ResultStatBlock>
           </div>
           <div class="results__single-row">
@@ -221,7 +236,7 @@ const bandwidth = computed(() => {
             <ResultStatBlock
                 label="Video Quality"
                 :value="resolution"
-                :variant="props.results.level?.latest?.height ? props.results.level?.latest?.height < 720 ? 'bad' : props.results.level?.latest?.height > 1080 ? 'good' : 'neutral'"
+                :variant="resolutionQuality"
             ></ResultStatBlock>
             <Chart :data="levels.levels" :labels="levels.labels" :stepped="true"></Chart>
           </div>
