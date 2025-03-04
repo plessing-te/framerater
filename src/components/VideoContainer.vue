@@ -3,6 +3,9 @@
     <video
         ref="video-player"
     ></video>
+    <div v-if="!videoStarted" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: #2C2C2C">
+      <Spinner></Spinner>
+    </div>
     <VideoStatsOverlay
       :stats="stats"
     ></VideoStatsOverlay>
@@ -10,10 +13,11 @@
 </template>
 
 <script setup lang="ts">
+import Spinner from '@/components/Spinner.vue';
 import type { VideoStats } from '@/components/stats.ts';
 import VideoStatsOverlay from '@/components/VideoStatsOverlay.vue';
 import Hls from 'hls.js'
-import { onMounted, onUnmounted, reactive, useTemplateRef, watch } from 'vue';
+import { onMounted, onUnmounted, reactive, useTemplateRef, watch, ref } from 'vue';
 
 const props = defineProps<{
   adaptive: boolean;
@@ -68,6 +72,8 @@ const stats = reactive<VideoStats>({
 // watch(stats, (value) => {
 //   console.log(JSON.parse(JSON.stringify(stats, null, 2)));
 // })
+
+const videoStarted = ref(false);
 
 onMounted(() => {
   pageLoaded = performance.now();
@@ -194,6 +200,8 @@ function setupVideoPlayback() {
     // console.log("Startup delay was: "+delta);
     stats.startupDelay = performance.now() - pageLoaded;
     video.removeEventListener("timeupdate",getStartupDelay);
+
+    videoStarted.value = true;
 
     setTimeout(finish, 20_000);
   }
