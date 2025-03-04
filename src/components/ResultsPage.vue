@@ -221,6 +221,7 @@ const bandwidth = computed(() => {
             <ResultStatBlock
                 label="Video Quality"
                 :value="resolution"
+                :variant="props.results.level?.latest?.height ? props.results.level?.latest?.height < 720 ? 'bad' : props.results.level?.latest?.height > 1080 ? 'good' : 'neutral'"
             ></ResultStatBlock>
             <Chart :data="levels.levels" :labels="levels.labels" :stepped="true"></Chart>
           </div>
