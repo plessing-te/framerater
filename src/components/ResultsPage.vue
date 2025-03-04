@@ -213,7 +213,7 @@ const resolutionQuality = computed(() => {
             <ResultStatBlock
                 label="Stall Count"
                 :value="results.stalls.totalCount"
-                :variant="results.stalls.totalCount === 0 ? 'good' : results.stalls.totalCount < 4 ? 'neutral' : 'bad'"
+                :variant="results.stalls.totalCount >= 5 || stalls.variant === 'bad' ? 'bad' : results.stalls.totalCount > 0 ? 'neutral' : 'good'"
             ></ResultStatBlock>
             <ResultStatBlock
                 label="Stalls Total Duration"
