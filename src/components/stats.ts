@@ -21,7 +21,10 @@ export interface VideoStats {
   startupDelay: number | null,
   bandwidth: {
     currentEstimate: number,
-    historyEstimates: number[],
+    historyEstimates: {
+      value: number,
+      time: number,
+    }[],
     average: number,
   },
   level: {

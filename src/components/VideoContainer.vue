@@ -56,7 +56,7 @@ const stats = reactive<VideoStats>({
     currentEstimate: 0,
     historyEstimates: [],
     get average() {
-      return this.historyEstimates.reduce(average);
+      return this.historyEstimates.map(({ value }) => value).reduce(average);
     }
   },
   level: {
@@ -99,19 +99,7 @@ function setupVideoPlayback() {
       video.play();
     });
     // Grab the initial level
-    hls.on(Hls.Events.LEVEL_UPDATED, () => {
-      console.log('Updated level', hls.currentLevel);
-      if (stats.level.latest) {
-        return;
-      }
-      const level = hls.levels[hls.currentLevel];
-      // Initially the level is -1 so skip those
-      if (level) {
-        console.log('Setting');
-        stats.level.latest = level;
-        stats.level.history = [...stats.level.history, { time: performance.now(), level }];
-      }
-    })
+    hls.on(Hls.Events.LEVEL_UPDATED, computeFirstLevel);
 
     hls.on(Hls.Events.FRAG_BUFFERED, function() {
       if (isEmitted) {
@@ -119,7 +107,7 @@ function setupVideoPlayback() {
       }
       const estimate = hls.bandwidthEstimate;
       stats.bandwidth.currentEstimate = estimate / 1_000_000;
-      stats.bandwidth.historyEstimates.push(estimate / 1_000_000);
+      stats.bandwidth.historyEstimates.push({ value: estimate / 1_000_000, time: performance.now() });
       // console.log("fragment buffered, BW estimate now: "+(hls.bandwidthEstimate/1_000_000)+" Mbit/s");
     });
     hls.on(Hls.Events.LEVEL_SWITCHED, function() {
@@ -130,7 +118,7 @@ function setupVideoPlayback() {
       let level = hls.levels[hls.currentLevel];
       // console.log('level', level, hls.currentLevel);
       // console.log("level: "+level.name+" with bitrate "+(level.bitrate/1_000_000)+" Mbit/s");
-      if (!stats.level || level.bitrate < stats.level.latest?.bitrate!) {
+      if (!stats.level.latest || level.bitrate < stats.level.latest?.bitrate!) {
         stats.level.latest = level;
       }
       stats.level.history = [...stats.level.history, { time: performance.now(), level }];
@@ -139,6 +127,17 @@ function setupVideoPlayback() {
     video.addEventListener("timeupdate", getStartupDelay);
 
     video.addEventListener("timeupdate", stallDetector);
+
+    function computeFirstLevel(): void {
+      let level = hls.levels[hls.currentLevel];
+      // console.log('level', level, hls.currentLevel);
+      // console.log("level: "+level.name+" with bitrate "+(level.bitrate/1_000_000)+" Mbit/s");
+      if (!level || stats.level.latest) {
+        return;
+      }
+      stats.level.latest = level;
+      stats.level.history = [...stats.level.history, { time: performance.now(), level }];
+    }
 
     hls.on(Hls.Events.ERROR, function (eventName, data) {
       if (isEmitted) {
@@ -196,26 +195,29 @@ function setupVideoPlayback() {
     stats.startupDelay = performance.now() - pageLoaded;
     video.removeEventListener("timeupdate",getStartupDelay);
 
-    setTimeout(() => {
-      if (isEmitted) {
-        return;
-      }
-      if (stats.stalls.currentStart) {
-        // End the current stall
-        const start = stats.stalls.currentStart;
-        const end = performance.now();
-        stats.stalls.history.push({
-          start,
-          end,
-          duration: end - start,
-        });
-        stats.stalls.currentStart = 0;
-        stats.stalls.currentStallTime = null;
-      }
-      isEmitted = true;
-      emit('done', { stats: stats as any });
-    }, 20_000);
+    setTimeout(finish, 20_000);
   }
+}
+
+function finish(): void {
+  if (isEmitted) {
+    return;
+  }
+  if (stats.stalls.currentStart) {
+    // End the current stall
+    const start = stats.stalls.currentStart;
+    const end = performance.now();
+    stats.stalls.history.push({
+      start,
+      end,
+      duration: end - start,
+    });
+    stats.stalls.currentStart = 0;
+    stats.stalls.currentStallTime = null;
+  }
+  stats.bandwidth.historyEstimates = [...stats.bandwidth.historyEstimates, { value: stats.bandwidth.currentEstimate, time: performance.now() }];
+  isEmitted = true;
+  emit('done', { stats: stats as any });
 }
 
 let interval = setInterval(latencyMeasurement, 500);
@@ -228,6 +230,9 @@ function latencyMeasurement() {
   let start = performance.now();
   fetch('/ping')
     .finally(() => {
+      if (isEmitted) {
+        return;
+      }
       let end = performance.now();
       let delta = end - start;
       stats.latency.latest = delta;

@@ -139,6 +139,19 @@ const levels = computed(() => {
   };
 });
 
+const bandwidth = computed(() => {
+  const data = [];
+  const labels = [];
+  for (const { value, time } of props.results.bandwidth.historyEstimates) {
+    data.push(value);
+    labels.push(time);
+  }
+  return {
+    data,
+    labels
+  };
+})
+
 </script>
 
 <template>
@@ -218,7 +231,7 @@ const levels = computed(() => {
                 unit="Mbps"
                 :variant="results.bandwidth.average < 10 ? 'bad' : results.bandwidth.average > 80 ? 'good' : 'neutral'"
             ></ResultStatBlock>
-            <Chart :data="results.bandwidth.historyEstimates"></Chart>
+            <Chart :data="bandwidth.data" :labels="bandwidth.labels"></Chart>
           </div>
         </div>
       </div>
