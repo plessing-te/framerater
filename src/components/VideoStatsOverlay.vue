@@ -13,12 +13,14 @@ const stalls = computed(() => {
   if (duration > 2000) {
     return {
       value: (Math.round(duration * 100 / 1000) / 100).toFixed(1),
-      unit: 's'
+      unit: 's',
+      isBad: true
     }
   } else {
     return {
       value: Math.round(duration).toFixed(0),
-      unit: 'ms'
+      unit: 'ms',
+      isBad: duration > 500
     }
   }
 })
@@ -41,7 +43,7 @@ const stalls = computed(() => {
       label="Stalls Total Duration"
       :value="stalls.value"
       :unit="stalls.unit"
-      :isBad="stats.stalls.totalDuration > 500"
+      :isBad="stalls.isBad"
   ></StatBlock>
   <StatBlock
       label="Bandwidth"
