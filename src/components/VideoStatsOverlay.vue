@@ -12,7 +12,7 @@ const stalls = computed(() => {
   const duration = props.stats.stalls.currentStallTime ?? props.stats.stalls.totalDuration;
   if (duration > 2000) {
     return {
-      value: (Math.round(duration * 100 / 1000) / 100).toFixed(2),
+      value: (Math.round(duration * 100 / 1000) / 100).toFixed(1),
       unit: 's'
     }
   } else {
