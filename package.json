@@ -8,7 +8,8 @@
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
-    "type-check": "vue-tsc --build"
+    "type-check": "vue-tsc --build",
+    "serve:prod": "npm run build-only && vite preview --port 8080"
   },
   "dependencies": {
     "chart.js": "^4.4.8",
