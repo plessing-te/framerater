@@ -32,6 +32,7 @@ export interface VideoStats {
     history: {
       level: Level,
       time: number,
-    }[]
+    }[],
+    lowest: Level
   }
 }

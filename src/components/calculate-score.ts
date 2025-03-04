@@ -2,8 +2,8 @@ import type { VideoStats } from '@/components/stats.ts';
 
 export function computeTotalScore(stats: VideoStats): number {
 
-  const streamWidth = stats.level?.width ?? 0; // minimum observed?
-  const streamHeight = stats.level?.height ?? 0; // minimum observed
+  const streamWidth = stats.level.lowest?.width ?? 0; // minimum observed?
+  const streamHeight = stats.level.lowest?.height ?? 0; // minimum observed
   const videoDuration = 20_000;
 
   const stallsCount = stats.stalls.totalCount;

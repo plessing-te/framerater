@@ -120,7 +120,7 @@ const resolution = computed(() => {
   ];
 
   for (const resolution of resolutions) {
-    if (resolution.width >= (props.results.level?.latest?.width ?? 0)) {
+    if (resolution.width >= (props.results.level.lowest?.width ?? 0)) {
       return resolution.name;
     }
   }

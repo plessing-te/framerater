@@ -16,7 +16,7 @@
 import Spinner from '@/components/Spinner.vue';
 import type { VideoStats } from '@/components/stats.ts';
 import VideoStatsOverlay from '@/components/VideoStatsOverlay.vue';
-import Hls from 'hls.js'
+import Hls, { type Level } from 'hls.js'
 import { onMounted, onUnmounted, reactive, useTemplateRef, watch, ref } from 'vue';
 
 const props = defineProps<{
@@ -66,6 +66,9 @@ const stats = reactive<VideoStats>({
   level: {
     latest: null,
     history: [],
+    get lowest() {
+      return this.history.reduce((acc: { level: Level, time: number } | null, curr) => (acc === null || acc.level.width > curr.level.width) ? curr : acc, null)!.level;
+    }
   }
 } satisfies VideoStats);
 
@@ -82,6 +85,14 @@ onMounted(() => {
 })
 
 let isEmitted = false;
+
+let levelInterval: number | null = null;
+
+onUnmounted(() => {
+  if (levelInterval) {
+    clearInterval(levelInterval);
+  }
+})
 
 function setupVideoPlayback() {
   const video = videoRef.value!;
@@ -120,14 +131,12 @@ function setupVideoPlayback() {
       if (isEmitted) {
         return;
       }
-      // console.log(hls.levels);
       let level = hls.levels[hls.currentLevel];
-      // console.log('level', level, hls.currentLevel);
-      // console.log("level: "+level.name+" with bitrate "+(level.bitrate/1_000_000)+" Mbit/s");
-      if (!stats.level.latest || level.bitrate < stats.level.latest?.bitrate!) {
+      if (level) {
+        console.log('LEVEL ADDED', level);
         stats.level.latest = level;
+        stats.level.history = [...stats.level.history, { time: performance.now(), level }];
       }
-      stats.level.history = [...stats.level.history, { time: performance.now(), level }];
     });
 
     video.addEventListener("timeupdate", getStartupDelay);
@@ -141,6 +150,7 @@ function setupVideoPlayback() {
       if (!level || stats.level.latest) {
         return;
       }
+      console.log('LEVEL ADDED 1st', level);
       stats.level.latest = level;
       stats.level.history = [...stats.level.history, { time: performance.now(), level }];
     }
@@ -172,6 +182,35 @@ function setupVideoPlayback() {
         // console.log("Stall started!");
       }
     });
+
+    function recordLevel() {
+      if (videoStarted.value) {
+        let level = hls.levels[hls.currentLevel];
+        if (level) {
+          console.log('LEVEL ADDED', level);
+          stats.level.latest = level;
+          stats.level.history = [...stats.level.history, { time: performance.now(), level }];
+        }
+      }
+    }
+
+    watch(videoStarted, (started) => {
+      if (started) {
+        levelInterval = setInterval(() => {
+          if (isEmitted) {
+            levelInterval && clearInterval(levelInterval);
+            levelInterval = null;
+            return;
+          }
+          let level = hls.levels[hls.currentLevel];
+          if (level) {
+            console.log('LEVEL ADDED', level);
+            stats.level.latest = level;
+            stats.level.history = [...stats.level.history, { time: performance.now(), level }];
+          }
+        }, 250);
+      }
+    })
   }
   function stallDetector() {
     if (isEmitted) {
@@ -236,7 +275,10 @@ function latencyMeasurement() {
     return;
   }
   let start = performance.now();
-  fetch('/ping')
+
+  fetch('/ping', {
+    method: 'HEAD'
+  })
     .finally(() => {
       if (isEmitted) {
         return;
